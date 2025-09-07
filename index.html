@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GO</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <!-- 额外引入GSAP用于高级动画 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.3/gsap.min.js"></script>
+</head>
+<body>
+    <!-- 初始页面 -->
+    <div id="start-screen" class="start-screen" style="display: none;">
+        <!-- 3D黑洞背景 -->
+        <div id="blackhole-canvas"></div>
+        
+        <div class="start-container">
+            <div class="transparent-text">全AI生成—仅供娱乐</div>
+            <button id="enter-btn" class="enter-btn">点击进入</button>
+        </div>
+        
+        <!-- 吸收效果粒子 -->
+        <div class="particle-container"></div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="main-screen" class="main-screen" style="display: none;">
+        <!-- 3D背景容器 -->
+        <div id="canvas-container"></div>
+        
+        <!-- 三个交互按钮 -->
+        <button id="moon-btn" class="planet-btn moon-btn">月宫</button>
+        <button id="fall-btn" class="planet-btn fall-btn">陨落</button>
+        <button id="future-btn" class="planet-btn future-btn">未来</button>
+    </div>
+
+    <!-- 视频播放容器 -->
+    <div id="video-container" class="video-container" style="display: none;">
+        <video id="fullscreen-video" autoplay loop muted></video>
+        <button id="back-btn" class="back-btn">返回</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
