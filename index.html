@@ -38,10 +38,123 @@
 
     <!-- 视频播放容器 -->
     <div id="video-container" class="video-container" style="display: none;">
-        <video id="fullscreen-video" autoplay loop muted></video>
+        <video id="fullscreen-video" class="lazy-video" data-src="" autoplay loop muted></video>
         <button id="back-btn" class="back-btn">返回</button>
     </div>
 
+    <!-- 图片懒加载和视频懒加载脚本 -->
+    <script>
+        // 图片懒加载功能
+        function lazyLoadImages() {
+            const lazyImages = document.querySelectorAll('img[data-src]');
+            
+            if ('IntersectionObserver' in window) {
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            imageObserver.unobserve(img);
+                        }
+                    });
+                });
+                
+                lazyImages.forEach(img => {
+                    imageObserver.observe(img);
+                });
+            } else {
+                // 降级方案：使用滚动事件监听
+                function loadLazyImages() {
+                    lazyImages.forEach(img => {
+                        if (isElementInViewport(img)) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                        }
+                    });
+                    
+                    if (lazyImages.length === 0) {
+                        document.removeEventListener('scroll', loadLazyImages);
+                        window.removeEventListener('resize', loadLazyImages);
+                        window.removeEventListener('orientationchange', loadLazyImages);
+                    }
+                }
+                
+                function isElementInViewport(el) {
+                    const rect = el.getBoundingClientRect();
+                    return (
+                        rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
+                        rect.left <= (window.innerWidth || document.documentElement.clientWidth)
+                    );
+                }
+                
+                document.addEventListener('scroll', loadLazyImages);
+                window.addEventListener('resize', loadLazyImages);
+                window.addEventListener('orientationchange', loadLazyImages);
+                loadLazyImages();
+            }
+        }
+        
+        // 视频懒加载功能
+        function lazyLoadVideos() {
+            const lazyVideos = document.querySelectorAll('video[data-src]');
+            
+            if ('IntersectionObserver' in window) {
+                const videoObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const video = entry.target;
+                            video.src = video.dataset.src;
+                            video.load();
+                            video.removeAttribute('data-src');
+                            videoObserver.unobserve(video);
+                        }
+                    });
+                });
+                
+                lazyVideos.forEach(video => {
+                    videoObserver.observe(video);
+                });
+            } else {
+                // 降级方案：使用滚动事件监听
+                function loadLazyVideos() {
+                    lazyVideos.forEach(video => {
+                        if (isElementInViewport(video)) {
+                            video.src = video.dataset.src;
+                            video.load();
+                            video.removeAttribute('data-src');
+                        }
+                    });
+                    
+                    if (lazyVideos.length === 0) {
+                        document.removeEventListener('scroll', loadLazyVideos);
+                        window.removeEventListener('resize', loadLazyVideos);
+                        window.removeEventListener('orientationchange', loadLazyVideos);
+                    }
+                }
+                
+                function isElementInViewport(el) {
+                    const rect = el.getBoundingClientRect();
+                    return (
+                        rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
+                        rect.left <= (window.innerWidth || document.documentElement.clientWidth)
+                    );
+                }
+                
+                document.addEventListener('scroll', loadLazyVideos);
+                window.addEventListener('resize', loadLazyVideos);
+                window.addEventListener('orientationchange', loadLazyVideos);
+                loadLazyVideos();
+            }
+        }
+        
+        // 页面加载完成后初始化懒加载
+        document.addEventListener('DOMContentLoaded', function() {
+            lazyLoadImages();
+            lazyLoadVideos();
+        });
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>

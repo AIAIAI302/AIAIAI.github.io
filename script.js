@@ -46,25 +46,34 @@ futureBtn.addEventListener('click', () => {
     playVideo('video/未来.mp4');
 });
 
-// 播放视频函数
+// 播放视频函数 - 支持懒加载
 function playVideo(videoSrc) {
     // 添加视频过渡动画
     gsap.to(mainScreen, {
         opacity: 0,
         duration: 0.8,
         onComplete: () => {
-            fullscreenVideo.src = videoSrc;
-            fullscreenVideo.load();
-            fullscreenVideo.play();
-            mainScreen.style.display = 'none';
-            videoContainer.style.display = 'block';
+            fullscreenVideo.dataset.src = videoSrc; // 使用data-src属性存储视频源
             
-            // 视频容器淡入
-            gsap.fromTo(videoContainer, {
-                opacity: 0
-            }, {
-                opacity: 1,
-                duration: 0.5
+            // 手动触发懒加载逻辑
+            const tempVideo = document.createElement('video');
+            tempVideo.src = videoSrc;
+            tempVideo.preload = 'metadata';
+            
+            tempVideo.addEventListener('loadedmetadata', () => {
+                fullscreenVideo.src = videoSrc;
+                fullscreenVideo.load();
+                fullscreenVideo.play();
+                mainScreen.style.display = 'none';
+                videoContainer.style.display = 'block';
+                
+                // 视频容器淡入
+                gsap.fromTo(videoContainer, {
+                    opacity: 0
+                }, {
+                    opacity: 1,
+                    duration: 0.5
+                });
             });
         }
     });
