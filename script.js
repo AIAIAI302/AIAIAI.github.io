@@ -46,24 +46,60 @@ futureBtn.addEventListener('click', () => {
     playVideo('video/未来.mp4');
 });
 
-// 播放视频函数 - 支持懒加载
+// 视频预加载缓存
+const videoCache = {};
+
+// 预加载视频函数
+function preloadVideo(videoSrc) {
+    if (videoCache[videoSrc]) {
+        return Promise.resolve();
+    }
+    
+    return new Promise((resolve, reject) => {
+        const tempVideo = document.createElement('video');
+        tempVideo.src = videoSrc;
+        tempVideo.preload = 'auto';
+        tempVideo.muted = true;
+        
+        tempVideo.addEventListener('loadedmetadata', () => {
+            videoCache[videoSrc] = true;
+            resolve();
+        });
+        
+        tempVideo.addEventListener('error', (err) => {
+            console.error('视频预加载失败:', err);
+            reject(err);
+        });
+    });
+}
+
+// 播放视频函数 - 支持优化的视频加载
 function playVideo(videoSrc) {
     // 添加视频过渡动画
     gsap.to(mainScreen, {
         opacity: 0,
         duration: 0.8,
-        onComplete: () => {
-            fullscreenVideo.dataset.src = videoSrc; // 使用data-src属性存储视频源
-            
-            // 手动触发懒加载逻辑
-            const tempVideo = document.createElement('video');
-            tempVideo.src = videoSrc;
-            tempVideo.preload = 'metadata';
-            
-            tempVideo.addEventListener('loadedmetadata', () => {
+        onComplete: async () => {
+            try {
+                // 显示加载指示器
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'loading-indicator';
+                loadingIndicator.innerText = '视频加载中...';
+                document.body.appendChild(loadingIndicator);
+                
+                // 预加载视频
+                await preloadVideo(videoSrc);
+                
+                // 移除加载指示器
+                document.body.removeChild(loadingIndicator);
+                
                 fullscreenVideo.src = videoSrc;
                 fullscreenVideo.load();
-                fullscreenVideo.play();
+                fullscreenVideo.play().catch(err => {
+                    console.warn('视频自动播放失败，尝试用户交互后播放:', err);
+                    // 在此添加用户交互播放的逻辑
+                });
+                
                 mainScreen.style.display = 'none';
                 videoContainer.style.display = 'block';
                 
@@ -74,7 +110,18 @@ function playVideo(videoSrc) {
                     opacity: 1,
                     duration: 0.5
                 });
-            });
+            } catch (error) {
+                console.error('播放视频时出错:', error);
+                // 显示错误消息
+                alert('视频加载失败，请重试');
+                // 恢复主界面显示
+                gsap.fromTo(mainScreen, {
+                    opacity: 0
+                }, {
+                    opacity: 1,
+                    duration: 0.5
+                });
+            }
         }
     });
 }
@@ -98,6 +145,25 @@ backBtn.addEventListener('click', () => {
                 duration: 0.5
             });
         }
+    });
+});
+
+// 为星球按钮添加悬停时预加载视频的功能
+moonBtn.addEventListener('mouseenter', () => {
+    preloadVideo('video/月宫.mp4').catch(() => {
+        // 忽略预加载错误
+    });
+});
+
+fallBtn.addEventListener('mouseenter', () => {
+    preloadVideo('video/陨落.mp4').catch(() => {
+        // 忽略预加载错误
+    });
+});
+
+futureBtn.addEventListener('mouseenter', () => {
+    preloadVideo('video/未来.mp4').catch(() => {
+        // 忽略预加载错误
     });
 });
 

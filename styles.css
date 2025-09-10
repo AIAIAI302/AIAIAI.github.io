@@ -250,3 +250,49 @@ body {
     background-color: rgba(255, 255, 255, 0.2);
     transform: scale(1.05);
 }
+
+/* 加载指示器样式 */
+.loading-indicator {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+/* 加载动画 */
+.loading-indicator::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 优化触摸设备上的交互体验 */
+@media (max-width: 768px) {
+    .planet-btn {
+        width: 120px;
+        height: 120px;
+        font-size: 16px;
+    }
+    
+    .enter-btn {
+        padding: 15px 30px;
+        font-size: 24px;
+    }
+}
