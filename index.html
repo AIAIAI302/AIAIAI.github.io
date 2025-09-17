@@ -82,17 +82,24 @@
         }
         #image-container {
             position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60%;
+            /* 手机比例 9:16 */
+            height: 0;
+            padding-bottom: 106.67%;
+            overflow: hidden;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            background-color: #111;
+        }
+        #display-image {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            z-index: 1;
-        }
-        #display-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             transition: transform 0.3s ease;
         }
         /* 星空背景 */
@@ -355,13 +362,17 @@
         
 
         
-        // 图片轮换跳动功能
+        // 图片轮换淡隐淡现功能 - 修复频闪问题
         function initImageRotation() {
             // 创建3D线性背景元素
             const linearFlow = document.querySelector('.linear-flow');
             createLinearElements(linearFlow, 20);
             
+            const imageContainer = document.getElementById('image-container');
             const imageElement = document.getElementById('display-image');
+            // 创建第二个图片元素用于平滑过渡
+            let nextImageElement = null;
+            
             // 使用可靠的公共图片链接作为替代
             const imageUrls = [
                 'https://s21.ax1x.com/2025/09/17/pVhnyDI.jpg',
@@ -374,43 +385,104 @@
                 'https://s21.ax1x.com/2025/09/17/pVhnUUK.jpg'
             ];
             let currentImageIndex = 0;
+            let transitionTimeout = null;
             
-            // 设置初始图片
-            function setNextImage() {
-                imageElement.src = imageUrls[currentImageIndex];
-                currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+            // 初始化第二个图片元素
+            function initNextImageElement() {
+                if (!nextImageElement) {
+                    nextImageElement = document.createElement('img');
+                    nextImageElement.id = 'next-display-image';
+                    nextImageElement.style.position = 'absolute';
+                    nextImageElement.style.top = '0';
+                    nextImageElement.style.left = '0';
+                    nextImageElement.style.width = '100%';
+                    nextImageElement.style.height = '100%';
+                    nextImageElement.style.objectFit = 'contain';
+                    nextImageElement.style.opacity = '0';
+                    nextImageElement.style.transition = 'opacity 1.5s ease-in-out'; // 更长更平滑的过渡
+                    nextImageElement.style.zIndex = '1'; // 初始在底层
+                    imageContainer.appendChild(nextImageElement);
+                }
             }
             
-            // 图片加载完成后添加跳动效果
-            imageElement.onload = function() {
-                // 图片跳动动画
-                const jumpInterval = setInterval(() => {
-                    imageElement.style.transform = 'scale(1.05)';
-                    setTimeout(() => {
-                        imageElement.style.transform = 'scale(1)';
-                    }, 300);
-                }, 3000);
+            // 平滑切换图片 - 修复频闪问题
+            function fadeToNextImage() {
+                // 清除之前的定时器
+                if (transitionTimeout) {
+                    clearTimeout(transitionTimeout);
+                }
                 
-                // 每5秒切换一张图片
-                setTimeout(() => {
-                    clearInterval(jumpInterval);
-                    imageElement.style.opacity = '0';
+                // 确保有下一张图片元素
+                initNextImageElement();
+                
+                // 计算下一张图片的索引
+                const nextImageIndex = (currentImageIndex + 1) % imageUrls.length;
+                
+                // 预加载下一张图片
+                nextImageElement.src = imageUrls[nextImageIndex];
+                nextImageElement.onload = function() {
+                    // 确保下一张图片在当前图片下方并且完全透明
+                    nextImageElement.style.zIndex = '1';
+                    nextImageElement.style.opacity = '0';
+                    
+                    // 强制重排以确保图片正确渲染
+                    void nextImageElement.offsetWidth;
+                    
+                    // 延迟确保图片已加载并渲染
                     setTimeout(() => {
-                        setNextImage();
-                        imageElement.style.opacity = '1';
-                    }, 500);
-                }, 5000);
+                        // 将下一张图片移到当前图片上方
+                        nextImageElement.style.zIndex = '2';
+                        
+                        // 同时进行淡入淡出 - 新图片淡入，旧图片淡出
+                        nextImageElement.style.opacity = '1';
+                        imageElement.style.opacity = '0';
+                        
+                        // 等待淡入淡出完成后
+                        setTimeout(() => {
+                            // 更新当前图片索引
+                            currentImageIndex = nextImageIndex;
+                            
+                            // 重置当前图片，准备下一次切换
+                            imageElement.src = imageUrls[currentImageIndex];
+                            imageElement.style.opacity = '1';
+                            imageElement.style.zIndex = '2';
+                            nextImageElement.style.opacity = '0';
+                            nextImageElement.style.zIndex = '1';
+                            
+                            // 设置下一次切换
+                            transitionTimeout = setTimeout(fadeToNextImage, 6000); // 图片显示时间延长
+                        }, 1500); // 等待淡入淡出完成
+                    }, 100);
+                };
+                
+                // 图片加载失败处理
+                nextImageElement.onerror = function() {
+                    console.log('下一张图片加载失败，尝试再下一张');
+                    currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+                    fadeToNextImage(); // 尝试加载下一张
+                };
+            }
+            
+            // 图片加载完成后设置初始状态
+            imageElement.onload = function() {
+                // 保持图片稳定显示
+                imageElement.style.transform = 'scale(1)';
+                imageElement.style.opacity = '1';
+                imageElement.style.zIndex = '2';
+                
+                // 设置第一次图片切换
+                transitionTimeout = setTimeout(fadeToNextImage, 6000);
             };
             
             // 如果图片加载失败，尝试下一张图片
             imageElement.onerror = function() {
-                console.log('图片加载失败，尝试下一张');
+                console.log('初始图片加载失败，尝试下一张');
                 currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
-                setNextImage();
+                imageElement.src = imageUrls[currentImageIndex];
             };
             
             // 开始加载第一张图片
-            setNextImage();
+            imageElement.src = imageUrls[currentImageIndex];
             
             // 初始化雪花特效
             initSnowflakeEffect();
