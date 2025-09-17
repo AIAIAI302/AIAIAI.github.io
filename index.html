@@ -3,54 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI GO</title>
-    <link rel="stylesheet" href="styles.css">
-    <!-- 使用国内CDN加速 -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/three.js/r132/three.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/three.js/r132/examples/js/controls/OrbitControls.js"></script>
-    <!-- 额外引入GSAP用于高级动画 -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
-    
-    <!-- 预加载关键资源 -->
-    <link rel="preload" href="script.js" as="script">
-    <link rel="preload" href="styles.css" as="style">
+    <title>AI GOGO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        /* 欢迎界面样式 */
+        #welcome-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+            z-index: 10;
+            transition: opacity 1s ease;
+        }
+        #welcome-text {
+            font-size: 3rem;
+            color: white;
+            text-align: center;
+            opacity: 1;
+            padding: 20px;
+        }
+        .time-container {
+            position: relative;
+            display: inline-block;
+            padding: 10px 20px;
+            margin-bottom: 30px;
+        }
+        .time-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid transparent;
+            background-clip: padding-box, border-box;
+            background-origin: padding-box, border-box;
+            background-image: 
+                linear-gradient(to right, black, black),
+                linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000);
+            animation: frameFlow 3s linear infinite;
+        }
+        @keyframes frameFlow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+        @keyframes colorFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        /* 主界面样式 */
+        #main-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: black;
+            z-index: 5;
+            overflow: hidden;
+        }
+        #image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        #display-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        /* 星空背景 */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        /* 3D线性流动背景 */
+        .linear-flow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            background: linear-gradient(45deg, rgba(0,0,51,0.7), rgba(0,0,102,0.7), rgba(0,51,102,0.7), rgba(0,102,153,0.7));
+            background-size: 400% 400%;
+            animation: gradientFlow 15s ease infinite;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; transform: rotateX(0deg) rotateY(0deg); }
+            25% { background-position: 100% 50%; transform: rotateX(2deg) rotateY(2deg); }
+            50% { background-position: 100% 100%; transform: rotateX(0deg) rotateY(4deg); }
+            75% { background-position: 0% 100%; transform: rotateX(-2deg) rotateY(2deg); }
+            100% { background-position: 0% 50%; transform: rotateX(0deg) rotateY(0deg); }
+        }
+        .linear-element {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform-origin: center;
+        }
+        @keyframes elementFloat {
+            0% { transform: translateX(-200%) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.3; }
+            80% { opacity: 0.3; }
+            100% { transform: translateX(200%) rotate(360deg); opacity: 0; }
+        }
+        
+        /* 雪花特效 */
+        .snowflake {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+        }
+        
+        @keyframes snowfall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- 初始页面 -->
-    <div id="start-screen" class="start-screen" style="display: none;">
-        <!-- 3D黑洞背景 -->
-        <div id="blackhole-canvas"></div>
-        
-        <div class="start-container">
-            <div class="transparent-text">全AI生成—仅供娱乐</div>
-            <button id="enter-btn" class="enter-btn">点击进入</button>
-        </div>
-        
-        <!-- 吸收效果粒子 -->
-        <div class="particle-container"></div>
+    <!-- 欢迎界面 -->
+    <div id="welcome-screen">
+        <div class="stars" id="welcome-stars"></div>
+        <div id="welcome-text"></div>
     </div>
-
-    <!-- 主界面 -->
-    <div id="main-screen" class="main-screen" style="display: none;">
-        <!-- 3D背景容器 -->
-        <div id="canvas-container"></div>
-        
-        <!-- 三个交互按钮 -->
-        <button id="moon-btn" class="planet-btn moon-btn">月宫</button>
-        <button id="fall-btn" class="planet-btn fall-btn">陨落</button>
-        <button id="future-btn" class="planet-btn future-btn">未来</button>
-    </div>
-
-    <!-- 视频播放容器 -->
-    <div id="video-container" class="video-container" style="display: none;">
-        <video id="fullscreen-video" class="lazy-video" data-src="" autoplay loop muted></video>
-        <button id="back-btn" class="back-btn">返回</button>
-    </div>
-
-    <!-- 添加缓存控制meta标签 -->
-    <meta http-equiv="Cache-Control" content="public, max-age=31536000">
     
-    <!-- 实际引入script.js -->
-    <script src="script.js"></script>
+    <!-- 主界面 -->
+    <div id="main-screen">
+        <div class="linear-flow"></div>
+        <div id="image-container">
+            <img id="display-image" src="" alt="展示图片">
+        </div>
+    </div>
+    
+    <script>
+        // 星空背景生成
+        function createStars(container, count) {
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // 随机位置
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                
+                // 随机大小
+                const size = Math.random() * 2 + 1;
+                
+                // 随机动画持续时间
+                const duration = Math.random() * 3 + 2;
+                
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                
+                container.appendChild(star);
+            }
+        }
+        
+        // 获取并格式化当前系统时间
+        function getCurrentFormattedTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        // 欢迎界面文字动画 - 时间显示和文字逐字显现效果
+        function animateWelcomeText() {
+            const welcomeText = document.getElementById('welcome-text');
+            const timeText = getCurrentFormattedTime();
+            const subText = '明天来得太快\n以至于昨天变得太遥远！';
+            let timeDisplayed = false;
+            let charIndex = 0;
+            const charDelay = 200; // 其他文字显现的时间为0.2秒
+            
+            // 清空文字
+            welcomeText.innerHTML = '';
+            
+            // 创建时间容器
+            const timeContainer = document.createElement('div');
+            timeContainer.className = 'time-container';
+            
+            // 创建流动框
+            const timeFrame = document.createElement('div');
+            timeFrame.className = 'time-frame';
+            
+            // 创建时间文本
+            const timeElement = document.createElement('div');
+            timeElement.style.position = 'relative';
+            timeElement.style.zIndex = '1';
+            timeElement.textContent = timeText;
+            timeElement.style.animation = 'colorFlow 3s linear infinite';
+            timeElement.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000)';
+            timeElement.style.backgroundSize = '200% auto';
+            timeElement.style.webkitBackgroundClip = 'text';
+            timeElement.style.webkitTextFillColor = 'transparent';
+            timeElement.style.backgroundClip = 'text';
+            timeElement.style.textFillColor = 'transparent';
+            
+            // 添加到容器
+            timeContainer.appendChild(timeFrame);
+            timeContainer.appendChild(timeElement);
+            welcomeText.appendChild(timeContainer);
+            
+            // 创建换行
+            welcomeText.appendChild(document.createElement('br'));
+            
+            // 创建子文本容器
+            let subTextElement = document.createElement('div');
+            // 添加七彩流光效果
+            subTextElement.style.animation = 'colorFlow 3s linear infinite';
+            subTextElement.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000)';
+            subTextElement.style.backgroundSize = '200% auto';
+            subTextElement.style.webkitBackgroundClip = 'text';
+            subTextElement.style.webkitTextFillColor = 'transparent';
+            subTextElement.style.backgroundClip = 'text';
+            subTextElement.style.textFillColor = 'transparent';
+            welcomeText.appendChild(subTextElement);
+            
+            // 逐字显示子文本
+            function typeNextChar() {
+                if (charIndex < subText.length) {
+                    const char = subText.charAt(charIndex);
+                    if (char === '\n') {
+                        // 处理换行符，创建新的div元素
+                        const newLineElement = document.createElement('div');
+                        // 为新行添加相同的七彩流光效果
+                        newLineElement.style.animation = 'colorFlow 3s linear infinite';
+                        newLineElement.style.backgroundImage = 'linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000)';
+                        newLineElement.style.backgroundSize = '200% auto';
+                        newLineElement.style.webkitBackgroundClip = 'text';
+                        newLineElement.style.webkitTextFillColor = 'transparent';
+                        newLineElement.style.backgroundClip = 'text';
+                        newLineElement.style.textFillColor = 'transparent';
+                        welcomeText.appendChild(newLineElement);
+                        // 更新subTextElement指向新行
+                        subTextElement = newLineElement;
+                    } else {
+                        subTextElement.textContent += char;
+                    }
+                    charIndex++;
+                    setTimeout(typeNextChar, charDelay);
+                } else {
+                    // 所有文本显示完成，切换到主界面
+                    setTimeout(switchToMainScreen, 1000);
+                }
+            }
+            
+            // 开始逐字显示子文本
+            setTimeout(typeNextChar, 500); // 稍微延迟开始显示子文本
+        }
+        
+        // 切换到主界面
+        function switchToMainScreen() {
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const mainScreen = document.getElementById('main-screen');
+            
+            welcomeScreen.style.opacity = '0';
+            setTimeout(() => {
+                welcomeScreen.style.display = 'none';
+                mainScreen.style.display = 'flex';
+                initImageRotation();
+            }, 1000);
+        }
+        
+        // 创建3D线性元素
+        function createLinearElements(container, count) {
+            for (let i = 0; i < count; i++) {
+                const element = document.createElement('div');
+                element.classList.add('linear-element');
+                
+                // 随机位置和大小
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const width = Math.random() * 300 + 50;
+                const height = Math.random() * 10 + 2;
+                const opacity = Math.random() * 0.3 + 0.1;
+                const duration = Math.random() * 20 + 10;
+                const delay = Math.random() * 5;
+                const rotation = Math.random() * 360;
+                const depth = Math.random() * 100;
+                
+                element.style.left = `${x}%`;
+                element.style.top = `${y}%`;
+                element.style.width = `${width}px`;
+                element.style.height = `${height}px`;
+                element.style.opacity = opacity;
+                element.style.transform = `rotate(${rotation}deg) translateZ(${depth}px)`;
+                element.style.animation = `elementFloat ${duration}s linear ${delay}s infinite`;
+                
+                container.appendChild(element);
+            }
+        }
+        
+
+        
+        // 图片轮换跳动功能
+        function initImageRotation() {
+            // 创建3D线性背景元素
+            const linearFlow = document.querySelector('.linear-flow');
+            createLinearElements(linearFlow, 20);
+            
+            const imageElement = document.getElementById('display-image');
+            // 使用可靠的公共图片链接作为替代
+            const imageUrls = [
+                'https://s21.ax1x.com/2025/09/17/pVhnyDI.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhnsKA.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhnDvd.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhnBgH.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhn08e.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhnwCD.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhna4O.jpg',
+                'https://s21.ax1x.com/2025/09/17/pVhnUUK.jpg'
+            ];
+            let currentImageIndex = 0;
+            
+            // 设置初始图片
+            function setNextImage() {
+                imageElement.src = imageUrls[currentImageIndex];
+                currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+            }
+            
+            // 图片加载完成后添加跳动效果
+            imageElement.onload = function() {
+                // 图片跳动动画
+                const jumpInterval = setInterval(() => {
+                    imageElement.style.transform = 'scale(1.05)';
+                    setTimeout(() => {
+                        imageElement.style.transform = 'scale(1)';
+                    }, 300);
+                }, 3000);
+                
+                // 每5秒切换一张图片
+                setTimeout(() => {
+                    clearInterval(jumpInterval);
+                    imageElement.style.opacity = '0';
+                    setTimeout(() => {
+                        setNextImage();
+                        imageElement.style.opacity = '1';
+                    }, 500);
+                }, 5000);
+            };
+            
+            // 如果图片加载失败，尝试下一张图片
+            imageElement.onerror = function() {
+                console.log('图片加载失败，尝试下一张');
+                currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+                setNextImage();
+            };
+            
+            // 开始加载第一张图片
+            setNextImage();
+            
+            // 初始化雪花特效
+            initSnowflakeEffect();
+        }
+        
+        // 创建雪花特效
+        function createSnowflake(x, y) {
+            const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake');
+            
+            // 随机大小
+            const size = Math.random() * 8 + 2;
+            
+            // 随机飘落时间
+            const duration = Math.random() * 5 + 3;
+            
+            // 随机水平偏移
+            const offset = (Math.random() - 0.5) * 200;
+            
+            // 随机旋转角度
+            const rotation = Math.random() * 360;
+            
+            // 设置样式
+            snowflake.style.width = `${size}px`;
+            snowflake.style.height = `${size}px`;
+            snowflake.style.left = `${x}px`;
+            snowflake.style.top = `${y}px`;
+            snowflake.style.animation = `snowfall ${duration}s linear forwards`;
+            snowflake.style.transform = `rotate(${rotation}deg)`;
+            snowflake.style.opacity = Math.random() * 0.5 + 0.5;
+            
+            // 添加到主界面
+            document.getElementById('main-screen').appendChild(snowflake);
+            
+            // 动画结束后移除元素
+            setTimeout(() => {
+                snowflake.remove();
+            }, duration * 1000);
+        }
+        
+        // 初始化雪花特效
+        function initSnowflakeEffect() {
+            const mainScreen = document.getElementById('main-screen');
+            
+            // 添加点击事件监听器
+            mainScreen.addEventListener('click', (e) => {
+                // 在点击位置创建多个雪花
+                const snowflakeCount = Math.random() * 15 + 10; // 每次点击生成10-25个雪花
+                
+                for (let i = 0; i < snowflakeCount; i++) {
+                    // 在点击位置周围随机分布雪花
+                    const offsetX = (Math.random() - 0.5) * 100;
+                    const offsetY = (Math.random() - 0.5) * 100;
+                    
+                    setTimeout(() => {
+                        createSnowflake(e.clientX + offsetX, e.clientY + offsetY);
+                    }, i * 50); // 错开创建时间，形成连续效果
+                }
+            });
+        }
+        
+        // 初始化
+        window.onload = function() {
+            // 创建星空背景
+            const welcomeStars = document.getElementById('welcome-stars');
+            createStars(welcomeStars, 300);
+            
+            // 开始欢迎文字动画
+            animateWelcomeText();
+        };
+    </script>
 </body>
 </html>
